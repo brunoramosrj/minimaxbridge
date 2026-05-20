@@ -148,8 +148,14 @@ async function attemptAutoLogin(): Promise<void> {
     const success = await loginToQwen(email, password);
     if (success) {
       console.log('[Playwright] Auto-login successful.');
+      return;
+    }
+    console.warn('[Playwright] API login failed, trying UI fallback...');
+    const uiSuccess = await loginToQwenUI(email, password);
+    if (uiSuccess) {
+      console.log('[Playwright] UI login fallback successful.');
     } else {
-      console.warn('[Playwright] Auto-login failed. Manual login may be required.');
+      console.warn('[Playwright] Both API and UI login failed. Manual login may be required.');
     }
   } catch (err: any) {
     console.error('[Playwright] Auto-login error:', err.message);
@@ -208,6 +214,48 @@ export async function loginToQwen(email: string, password: string): Promise<bool
   }
 
   console.error('[Playwright] Login failed:', result.data || result.error);
+  return false;
+}
+
+async function loginToQwenUI(email: string, password: string): Promise<boolean> {
+  if (!activePage) throw new Error('Playwright not initialized');
+
+  console.log('[Playwright] Attempting UI login...');
+  await activePage.goto('https://chat.qwen.ai/auth', { waitUntil: 'domcontentloaded' });
+  await sleep(2000);
+
+  if (!activePage.url().includes('/auth')) {
+    console.log('[Playwright] Already logged in');
+    return true;
+  }
+
+  try {
+    await activePage.waitForSelector('input[type="email"], input[placeholder*="Email"]', { timeout: 5000 });
+  } catch {
+    if (activePage.url().includes('/auth')) throw new Error('Email input not found');
+    console.log('[Playwright] Already logged in');
+    return true;
+  }
+
+  console.log('[Playwright] UI: Filling email...');
+  await activePage.fill('input[type="email"], input[placeholder*="Email"]', email);
+  await activePage.keyboard.press('Enter');
+  await sleep(1000);
+
+  await activePage.waitForSelector('input[type="password"]', { timeout: 10000 });
+  console.log('[Playwright] UI: Filling password...');
+  await activePage.fill('input[type="password"]', password);
+  await activePage.keyboard.press('Enter');
+
+  await sleep(2000);
+
+  const isLogged = !activePage.url().includes('auth') && !activePage.url().includes('login');
+  if (isLogged) {
+    console.log('[Playwright] UI login OK');
+    return true;
+  }
+
+  console.log('[Playwright] UI login failed');
   return false;
 }
 

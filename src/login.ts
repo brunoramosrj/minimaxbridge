@@ -28,7 +28,7 @@ async function main() {
   if (email && password) {
     console.log(`[Login] Credentials found in .env. Attempting automated API login using ${browserType}...`);
     await initPlaywright(true, browserType);
-    const cookies = await activePage?.context().cookies();
+    const cookies = await activePage?.context()?.cookies();
     const hasAuthCookie = cookies?.some(c => c.name.toLowerCase().includes('token') || c.name.toLowerCase().includes('session'));
     if (hasAuthCookie) {
       console.log('[Login] Automated login successful! Session saved.');
@@ -40,6 +40,7 @@ async function main() {
   }
 
   console.log(`Opening ${browserType} to allow manual login...`);
+  await closePlaywright();
   await initPlaywright(false, browserType);
   if (activePage) {
     await activePage.goto('https://chat.qwen.ai/auth', { waitUntil: 'domcontentloaded' });
