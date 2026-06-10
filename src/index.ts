@@ -1,5 +1,9 @@
 import 'dotenv/config'
-import { startServer } from './api/server.js'
+import { loadCredentialEnvironment } from './core/credentials.js'
+
+loadCredentialEnvironment()
+
+const { startServer } = await import('./api/server.js')
 
 startServer().catch(error => {
   console.error('Failed to start server:', error)

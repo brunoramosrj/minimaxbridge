@@ -7,6 +7,7 @@ import type {
   AnthropicContentBlock,
   OpenAIRequest,
   OpenAIMessage,
+  OpenAIContentPart,
   OpenAITool,
   OpenAIResponse,
 } from "./types.ts";
@@ -98,8 +99,7 @@ export function translateAnthropicToOpenAI(
       // Check if it has tool_result
       if (Array.isArray(msg.content)) {
         const toolResults = msg.content.filter((b) => b.type === "tool_result");
-        const textParts = msg.content.filter((b) => b.type === "text");
-        const imageParts = msg.content.filter((b) => b.type === "image");
+        const multimodalParts: OpenAIContentPart[] = [];
 
         // Tool results → messages role=tool
         for (const tr of toolResults) {
@@ -119,15 +119,28 @@ export function translateAnthropicToOpenAI(
           });
         }
 
-        // Text parts → message role=user
-        if (textParts.length > 0) {
-          const text = textParts.map((b) => b.text || "").join("\n");
-          messages.push({ role: "user", content: text });
+        for (const block of msg.content) {
+          if (block.type === "text" && block.text) {
+            multimodalParts.push({ type: "text", text: block.text });
+          } else if (block.type === "image" && block.source) {
+            const imageUrl =
+              block.source.type === "base64" && block.source.data
+                ? `data:${block.source.media_type};base64,${block.source.data}`
+                : block.source.type === "url"
+                  ? block.source.url
+                  : undefined;
+
+            if (imageUrl) {
+              multimodalParts.push({
+                type: "image_url",
+                image_url: { url: imageUrl },
+              });
+            }
+          }
         }
 
-        // Image parts → convert to multimodal content (not fully supported, skip for now)
-        if (imageParts.length > 0 && textParts.length === 0) {
-          messages.push({ role: "user", content: "[Image content]" });
+        if (multimodalParts.length > 0) {
+          messages.push({ role: "user", content: multimodalParts });
         }
       } else {
         messages.push({ role: "user", content: msg.content });
@@ -223,7 +236,7 @@ export function translateOpenAIToAnthropic(
   const content: AnthropicResponseContentBlock[] = [];
 
   // Text content
-  if (choice.message.content) {
+  if (typeof choice.message.content === "string" && choice.message.content) {
     content.push({
       type: "text",
       text: choice.message.content,

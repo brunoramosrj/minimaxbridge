@@ -41,6 +41,54 @@ test("fetchQwenModels caches results per account", async () => {
   }
 });
 
+test("fetchQwenModels advertises image input modalities", async () => {
+  const originalFetch = globalThis.fetch;
+
+  globalThis.fetch = async (input: any) => {
+    const url = typeof input === "string" ? input : input.url;
+    if (url.includes("/api/models")) {
+      return new Response(
+        JSON.stringify({
+          data: [
+            {
+              id: "qwen3.7-plus",
+              name: "Qwen3.7-Plus",
+              info: { meta: { capabilities: { vision: true } } },
+            },
+            {
+              id: "qwen3.7-max",
+              name: "Qwen3.7-Max",
+              info: { meta: { capabilities: { document: true } } },
+            },
+            {
+              id: "text-only",
+              name: "Text Only",
+              info: { meta: { capabilities: {} } },
+            },
+          ],
+        }),
+        { status: 200 },
+      );
+    }
+    return originalFetch(input);
+  };
+
+  try {
+    const models = await fetchQwenModels("modalities-test");
+    const plus = models.find((model) => model.id === "qwen3.7-plus");
+    const max = models.find((model) => model.id === "qwen3.7-max");
+    const textOnly = models.find((model) => model.id === "text-only");
+
+    assert.deepEqual(plus?.input_modalities, ["text", "image"]);
+    assert.deepEqual(plus?.architecture.input_modalities, ["text", "image"]);
+    assert.deepEqual(max?.input_modalities, ["text", "image"]);
+    assert.equal(max?.capabilities.vision, true);
+    assert.deepEqual(textOnly?.input_modalities, ["text"]);
+  } finally {
+    globalThis.fetch = originalFetch;
+  }
+});
+
 test("processImagesForQwen re-uploads remote HTTP files to Qwen OSS", async () => {
   const originalFetch = globalThis.fetch;
   const remoteUrl = "https://example.com/docs/report.pdf?download=1";

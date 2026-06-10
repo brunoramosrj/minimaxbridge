@@ -335,6 +335,12 @@ interface PublicQwenModel {
   created: number;
   context_window?: number;
   capabilities?: any;
+  input_modalities: string[];
+  modalities: string[];
+  architecture: {
+    input_modalities: string[];
+    output_modalities: string[];
+  };
 }
 
 const MODEL_CACHE_TTL_MS = 60 * 60 * 1000;
@@ -647,6 +653,16 @@ function formatPublicQwenModel(
   model: any,
   noThinking = false,
 ): PublicQwenModel {
+  const capabilities = { ...(model.info?.meta?.capabilities || {}) };
+  const visionVerifiedModels = new Set(["qwen3.7-max"]);
+  const supportsVision =
+    capabilities.vision === true || visionVerifiedModels.has(model.id);
+  const inputModalities = supportsVision ? ["text", "image"] : ["text"];
+
+  if (supportsVision) {
+    capabilities.vision = true;
+  }
+
   return {
     id: noThinking ? `${model.id}-no-thinking` : model.id,
     name: noThinking ? `${model.name} (No Thinking)` : model.name,
@@ -654,7 +670,13 @@ function formatPublicQwenModel(
     owned_by: model.owned_by || "qwen",
     created: model.info?.created_at || Date.now(),
     context_window: model.info?.meta?.max_context_length,
-    capabilities: model.info?.meta?.capabilities,
+    capabilities,
+    input_modalities: inputModalities,
+    modalities: inputModalities,
+    architecture: {
+      input_modalities: inputModalities,
+      output_modalities: ["text"],
+    },
   };
 }
 

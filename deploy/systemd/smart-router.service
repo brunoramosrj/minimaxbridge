@@ -1,0 +1,21 @@
+# /etc/systemd/system/smart-router.service
+[Unit]
+Description=Smart LLM Router with idempotent Qwen fallback
+After=network.target qwenbridge.service
+Wants=qwenbridge.service
+
+[Service]
+User=ubuntu
+WorkingDirectory=/home/ubuntu
+LoadCredentialEncrypted=qwenbridge-api-key:/etc/credstore.encrypted/qwenbridge-api-key
+LoadCredentialEncrypted=openrouter-api-key:/etc/credstore.encrypted/openrouter-api-key
+ExecStart=/usr/bin/python3 /home/ubuntu/smart_router.py
+Restart=always
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ReadWritePaths=/home/ubuntu
+
+[Install]
+WantedBy=multi-user.target

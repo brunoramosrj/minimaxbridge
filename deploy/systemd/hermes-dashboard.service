@@ -1,0 +1,14 @@
+[Unit]
+Description=Hermes Dashboard with Kanban
+After=network.target hermes-gateway.service
+
+[Service]
+Type=simple
+WorkingDirectory=/home/ubuntu/hermes-agent
+EnvironmentFile=-/home/ubuntu/.hermes/.env
+ExecStart=/home/ubuntu/hermes-agent/venv/bin/python -m hermes_cli.main dashboard --host 0.0.0.0 --port 9119 --no-open --insecure --skip-build
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=default.target

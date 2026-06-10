@@ -177,6 +177,38 @@ export interface StartedServerInfo {
   url: string;
 }
 
+interface ListenEventSource {
+  listening?: boolean;
+  once(event: "listening", listener: () => void): unknown;
+  once(event: "error", listener: (error: Error) => void): unknown;
+  off(event: "listening", listener: () => void): unknown;
+  off(event: "error", listener: (error: Error) => void): unknown;
+}
+
+export function waitForServerListening(
+  target: ListenEventSource,
+): Promise<void> {
+  if (target.listening) return Promise.resolve();
+
+  return new Promise((resolve, reject) => {
+    const cleanup = () => {
+      target.off("listening", onListening);
+      target.off("error", onError);
+    };
+    const onListening = () => {
+      cleanup();
+      resolve();
+    };
+    const onError = (error: Error) => {
+      cleanup();
+      reject(error);
+    };
+
+    target.once("listening", onListening);
+    target.once("error", onError);
+  });
+}
+
 function buildStartedServerInfo(): StartedServerInfo {
   const host =
     config.server.host === "0.0.0.0" ? "127.0.0.1" : config.server.host;
@@ -379,6 +411,7 @@ export async function startServer(options?: {
       port: config.server.port,
       hostname: config.server.host,
     });
+    await waitForServerListening(server);
 
     if (options?.installSignalHandlers !== false) {
       installSignalHandlers();

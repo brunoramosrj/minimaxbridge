@@ -48,6 +48,66 @@ test("Anthropic: translateAnthropicToOpenAI converts messages", () => {
   assert.equal(result.messages[1].content, "Hello");
 });
 
+test("Anthropic: translates base64 images to OpenAI multimodal content", () => {
+  const result = translateAnthropicToOpenAI({
+    model: "qwen3.7-plus",
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: [
+          { type: "text", text: "Descreva esta imagem." },
+          {
+            type: "image",
+            source: {
+              type: "base64",
+              media_type: "image/png",
+              data: "aGVsbG8=",
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(result.messages[0].content, [
+    { type: "text", text: "Descreva esta imagem." },
+    {
+      type: "image_url",
+      image_url: { url: "data:image/png;base64,aGVsbG8=" },
+    },
+  ]);
+});
+
+test("Anthropic: translates image URLs to OpenAI multimodal content", () => {
+  const result = translateAnthropicToOpenAI({
+    model: "qwen3.5-omni-plus",
+    max_tokens: 1024,
+    messages: [
+      {
+        role: "user",
+        content: [
+          {
+            type: "image",
+            source: {
+              type: "url",
+              media_type: "image/jpeg",
+              url: "https://example.com/photo.jpg",
+            },
+          },
+        ],
+      },
+    ],
+  });
+
+  assert.deepEqual(result.messages[0].content, [
+    {
+      type: "image_url",
+      image_url: { url: "https://example.com/photo.jpg" },
+    },
+  ]);
+});
+
 test("Anthropic: translateAnthropicToOpenAI converts tools", () => {
   const anthropicReq = {
     model: "claude-sonnet-4-6",

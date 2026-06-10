@@ -636,6 +636,27 @@ components:
         owned_by:
           type: string
           example: qwen
+        input_modalities:
+          type: array
+          items:
+            type: string
+          example: [text, image]
+        modalities:
+          type: array
+          items:
+            type: string
+          example: [text, image]
+        architecture:
+          type: object
+          properties:
+            input_modalities:
+              type: array
+              items:
+                type: string
+            output_modalities:
+              type: array
+              items:
+                type: string
 
     HealthResponse:
       type: object
