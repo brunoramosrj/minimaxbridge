@@ -8,4 +8,5 @@
  */
 
 // Barrel re-export — all route handlers are decomposed in ./chat/index.ts
-export { chatCompletions, chatCompletionsStop } from "./chat/index.ts";
+export { chatCompletions } from "./minimax-chat.ts";
+export { chatCompletionsStop } from "./chat/stop.ts";

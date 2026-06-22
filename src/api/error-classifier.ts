@@ -21,6 +21,14 @@ import { ToolLinterError } from "../tools/linter.js";
  * Preserves specific error metadata when possible.
  */
 export function classifyError(err: unknown): QwenBridgeError {
+  const upstreamStatus = (err as { upstreamStatus?: unknown } | null)
+    ?.upstreamStatus;
+  if (upstreamStatus === 429) {
+    return new UpstreamRateLimit(
+      err instanceof Error ? err.message : String(err),
+    );
+  }
+
   if (err instanceof RetryableQwenStreamError) {
     if (err.retryAfterMs > 0 && err.retryAfterMs < 60000) {
       return new UpstreamRateLimit(err.message);

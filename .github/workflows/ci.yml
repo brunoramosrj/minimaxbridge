@@ -17,7 +17,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        node: [20, 22]
+        node: [22, 24]
     steps:
       - uses: actions/checkout@v4
 
@@ -35,7 +35,6 @@ jobs:
         run: npm run test:mock
         env:
           CI: true
-          TEST_MOCK_QWEN_AUTH: true
 
   docker:
     name: Docker Build
@@ -65,8 +64,8 @@ jobs:
           push: true
           platforms: linux/amd64,linux/arm64
           tags: |
-            pedrofariasx/qwenbridge:latest
-            pedrofariasx/qwenbridge:${{ github.sha }}
+            brunoramosrj/minimaxbridge:latest
+            brunoramosrj/minimaxbridge:${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 

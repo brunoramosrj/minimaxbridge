@@ -76,6 +76,14 @@ const envSchema = z.object({
   QWEN_PERSONALIZATION_VERIFY_GET: z.string().default("true"),
   DELETE_ALL_CHATS_ON_SHUTDOWN: z.string().default("false"),
   API_KEY: z.string().default(""),
+  MINIMAX_TOKEN: z.string().default(""),
+  MINIMAX_HAR_PATH: z.string().default("agent.minimax.io.har"),
+  MINIMAX_SESSION_PATH: z.string().default(".minimax-session.json"),
+  MINIMAX_AGENT_NAME: z.string().default(""),
+  MINIMAX_UUID: z.string().default(""),
+  MINIMAX_DEVICE_ID: z.string().default(""),
+  MINIMAX_ENABLE_TEAM: z.string().default("false"),
+  MINIMAX_MAX_PROMPT_CHARS: z.string().default("70000"),
 });
 
 const env = envSchema.parse(process.env);
@@ -186,6 +194,16 @@ export const config = {
     maxDelayMs: parseInt(env.ANTI_BOT_MAX_DELAY_MS),
   },
   apiKey: env.API_KEY,
+  minimax: {
+    token: env.MINIMAX_TOKEN,
+    harPath: env.MINIMAX_HAR_PATH,
+    sessionPath: env.MINIMAX_SESSION_PATH,
+    agentName: env.MINIMAX_AGENT_NAME,
+    uuid: env.MINIMAX_UUID,
+    deviceId: env.MINIMAX_DEVICE_ID,
+    enableTeam: env.MINIMAX_ENABLE_TEAM === "true",
+    maxPromptChars: Math.max(10_000, parseInt(env.MINIMAX_MAX_PROMPT_CHARS)),
+  },
   qwen: {
     baseUrl: env.QWEN_BASE_URL,
     chatPoolSize: Math.max(0, parseInt(env.QWEN_CHAT_POOL_SIZE)),

@@ -18,6 +18,9 @@ accounts.json.bak
 
 # Browser profiles (session data)
 qwen_profiles/
+.minimax-session.json
+*.har
+.minimax-login-error.png
 
 # Logs
 *.log
@@ -49,3 +52,10 @@ Thumbs.db
 # Tests
 src/tests/
 src/benchmarks/
+
+# Local research and deployment notes
+deep-research-report.md
+fallback-project-evaluation.md
+hermes-model-benchmark.md
+modelos.txt
+deploy/__pycache__/

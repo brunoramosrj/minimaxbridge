@@ -35,3 +35,14 @@ Thumbs.db
 # IDE / Editor
 .kilo
 .roo
+*.har
+.minimax-session.json
+.minimax-login-error.png
+__pycache__/
+*.pyc
+
+# Local research and operational notes
+deep-research-report.md
+fallback-project-evaluation.md
+hermes-model-benchmark.md
+modelos.txt

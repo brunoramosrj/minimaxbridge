@@ -8,13 +8,11 @@ import { logger } from "../core/logger.js";
 import { MemoryCache } from "../cache/memory-cache.js";
 import { Watchdog } from "../core/watchdog.js";
 import { app as modelsApp } from "./models.js";
-import { chatCompletions, chatCompletionsStop } from "../routes/chat.js";
-import { uploadFile } from "../routes/upload.js";
+import { chatCompletions } from "../routes/chat.js";
 import { anthropicApp } from "../routes/anthropic/index.js";
 import { sendOpenAIError } from "./error-helpers.js";
 import { AuthError, NotFoundError, UpstreamRateLimit } from "../core/errors.js";
 import type { CacheKey } from "../cache/memory-cache.js";
-import type { QwenAccount } from "../core/accounts.js";
 
 // Module-level state (initialized in startServer)
 let cache: MemoryCache | undefined;
@@ -53,13 +51,15 @@ function verifyApiKey(c: Context): Response | null {
   if (!apiKey) return null;
 
   const auth = c.req.header("Authorization");
-  if (!auth?.startsWith("Bearer ")) {
+  const token = auth?.startsWith("Bearer ")
+    ? auth.slice(7)
+    : c.req.header("x-api-key");
+  if (!token) {
     return sendOpenAIError(
       c,
       new AuthError("Missing or invalid Authorization header"),
     );
   }
-  const token = auth.slice(7);
   const tokenBuf = Buffer.from(token);
   const keyBuf = Buffer.from(apiKey);
   if (
@@ -133,8 +133,6 @@ app.use("/v1/*", async (c, next) => {
 // Routes
 app.route("", modelsApp);
 app.post("/v1/chat/completions", chatCompletions);
-app.post("/v1/chat/completions/stop", chatCompletionsStop);
-app.post("/v1/upload", uploadFile);
 
 // Anthropic API compatible routes
 app.route("", anthropicApp);
@@ -247,14 +245,16 @@ async function prepareQwenRuntime(params: {
     accountId: string | undefined,
     modelId: string,
   ) => Promise<void>;
-}): Promise<void> {
+}): Promise<boolean> {
   try {
     await params.initAuth();
     await params.disableNativeTools(params.accountId).catch(() => {});
     await warmConfiguredChatPools(params.warmQwenChatPool, params.accountId);
     console.log(params.successMessage);
+    return true;
   } catch (error) {
     console.error(params.failureMessage, getErrorMessage(error));
+    return false;
   }
 }
 
@@ -362,44 +362,11 @@ export async function startServer(options?: {
     cache = new MemoryCache();
     await cache.connect();
 
-    const { loadAccounts } = await import("../core/accounts.ts");
-    const accounts = loadAccounts();
-
-    const { disableNativeTools, warmQwenChatPool } =
-      await import("../services/qwen.ts");
-    const { initHttpAuth, initHttpAuthForAccount, hasGlobalCredentials } =
-      await import("../services/auth-http.ts");
-
-    if (accounts.length > 0) {
-      console.log(
-        `[Server] Preparing ${accounts.length} configured account(s) with HTTP auth in parallel...`,
-      );
-
-      await Promise.all(
-        accounts.map((account: QwenAccount) =>
-          prepareQwenRuntime({
-            accountId: account.id,
-            successMessage: `[Server] Account ready: ${account.email}`,
-            failureMessage: `[Server] Failed to initialize account ${account.email}:`,
-            initAuth: () => initHttpAuthForAccount(account),
-            disableNativeTools,
-            warmQwenChatPool,
-          }),
-        ),
-      );
-    } else if (hasGlobalCredentials()) {
-      await prepareQwenRuntime({
-        successMessage: "[Server] Global Qwen HTTP auth ready.",
-        failureMessage: "[Server] Failed to initialize global Qwen auth:",
-        initAuth: () => initHttpAuth(),
-        disableNativeTools,
-        warmQwenChatPool,
-      });
-    } else {
-      console.warn(
-        "[Server] No Qwen credentials configured. Requests will fail until QWEN_EMAIL/QWEN_PASSWORD or QWEN_ACCOUNTS are provided.",
-      );
-    }
+    const { miniMaxAuthStatus } = await import("../services/minimax.ts");
+    const authStatus = miniMaxAuthStatus();
+    if (authStatus === "session") console.log(`[Server] MiniMax session loaded from ${config.minimax.sessionPath}.`);
+    if (authStatus === "missing") console.warn(`[Server] No MiniMax token found in MINIMAX_TOKEN or ${config.minimax.harPath}.`);
+    if (authStatus === "expired") console.warn("[Server] The MiniMax token is expired; capture a new HAR.");
 
     watchdog = new Watchdog();
     watchdog.start();

@@ -63,13 +63,13 @@ function verifyAnthropicApiKey(c: Context): boolean {
  */
 app.get("/v1/models", async (c) => {
   try {
-    const { fetchQwenModels } = await import("../../services/qwen.js");
+    const { listMiniMaxModels } = await import("../../services/minimax.js");
 
     // Check if we should return Anthropic format
     const anthropicVersion = c.req.header("anthropic-version");
     const isAnthropicFormat = !!anthropicVersion;
 
-    const models = await fetchQwenModels();
+    const models = listMiniMaxModels();
 
     if (isAnthropicFormat) {
       // Return Anthropic format
@@ -116,8 +116,8 @@ app.get("/v1/models/:model_id", async (c) => {
   const modelId = c.req.param("model_id");
 
   try {
-    const { fetchQwenModels } = await import("../../services/qwen.js");
-    const models = await fetchQwenModels();
+    const { listMiniMaxModels } = await import("../../services/minimax.js");
+    const models = listMiniMaxModels();
     const model = models.find((m: any) => m.id === modelId);
 
     if (!model) {
@@ -249,7 +249,7 @@ app.post("/v1/messages", async (c) => {
         };
 
         try {
-          // Make the actual request to Qwen
+          // Use the local OpenAI-compatible route so auth and error handling stay uniform.
           const controller = new AbortController();
           const response = await fetch(
             `http://127.0.0.1:${config.server.port}/v1/chat/completions`,

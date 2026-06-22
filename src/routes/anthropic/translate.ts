@@ -19,9 +19,12 @@ import type {
  * - Unknown models pass through (Qwen will handle the error)
  */
 export function mapAnthropicModel(model: string): string {
-  // If it's already a Qwen model, use it directly
-  if (model.startsWith("qwen")) {
+  if (model.startsWith("MiniMax-")) {
     return model;
+  }
+
+  if (model.startsWith("claude-")) {
+    return "MiniMax-M3";
   }
 
   // Map Claude models to Qwen equivalents
@@ -52,7 +55,7 @@ export function mapAnthropicModel(model: string): string {
     "claude-3-haiku": "qwen3.5-flash",
   };
 
-  return claudeToQwen[model] || model;
+  return claudeToQwen[model] || "MiniMax-M3";
 }
 
 /**
